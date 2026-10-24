@@ -22,7 +22,8 @@ from . import core, proton
 
 
 class Bridge:
-    def __init__(self, on_ready=None):
+    def __init__(self, on_ready=None, output=None):
+        self.output = output
         self.on_ready = on_ready
         self.frame_error = None
         self.running = True
@@ -35,6 +36,9 @@ class Bridge:
         self.prefix = self.root / 'compatdata'
 
     def launch(self, argv, **kwargs):
+        if self.output is not None:
+            kwargs.setdefault('stdout', self.output)
+            kwargs.setdefault('stderr', subprocess.STDOUT)
         process = subprocess.Popen(argv, close_fds=True, **kwargs)
         self.children.append(process)
         return process

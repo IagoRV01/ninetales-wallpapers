@@ -72,6 +72,7 @@ class Window(Gtk.ApplicationWindow):
         self.set_default_size(1120, 760)
         self.set_icon_name('preferences-desktop-wallpaper')
         self.config = core.load_config()
+        self.observed_backend = self.config.get('backend', 'native')
         configure(self.config.get('language', 'auto'))
         self.wallpapers = []
         self.selected_path = (self.config.get('selection') or {}).get('path')
@@ -195,11 +196,16 @@ class Window(Gtk.ApplicationWindow):
         sidebar.pack_start(Gtk.Separator(), False, False, 2)
 
         self.backend = Gtk.ComboBoxText()
-        self.backend.append('native', t('Nativo · recomendado'))
+        self.backend.append('native', t('Nativo · sin horas de Steam'))
         self.backend.append('proton', t('Oficial · Proton (experimental)'))
         self.backend.set_active_id(self.config.get('backend', 'native'))
         self.backend.set_tooltip_text(t('El motor oficial usa una pantalla virtual; requiere Xvfb y puede consumir más CPU.'))
         self.field(sidebar, t('Motor'), self.backend)
+        self.renderer_note = label('', 'muted', True)
+        self.renderer_note.set_max_width_chars(32)
+        sidebar.pack_start(self.renderer_note, False, False, 0)
+        self.backend.connect('changed', self.renderer_changed)
+        self.renderer_changed()
 
         self.output = Gtk.ComboBoxText()
         self.output.append('*', t('Todas las pantallas'))
@@ -237,6 +243,11 @@ class Window(Gtk.ApplicationWindow):
         GLib.timeout_add_seconds(5, self.watch_downloads)
         self.refresh()
         self.update_status()
+
+    def renderer_changed(self, *_):
+        native = self.backend.get_active_id() == 'native'
+        self.renderer_note.set_text(t('El motor nativo no abre el .exe ni registra horas en Steam.') if native else
+                                    t('Con «Iniciar mediante Steam», aplica el fondo aquí para iniciar el motor oficial.'))
 
     def show_settings(self, page='general'):
         from . import steam_integration, __version__
@@ -280,7 +291,7 @@ class Window(Gtk.ApplicationWindow):
         general.pack_start(label('Ninetales Wallpapers ' + __version__, 'muted'), False, False, 0)
 
         playback = tab('playback', t('Reproducción'))
-        backend = combo(playback, t('Motor'), [('native', t('Nativo · recomendado')),
+        backend = combo(playback, t('Motor'), [('native', t('Nativo · sin horas de Steam')),
                         ('proton', t('Oficial · Proton (experimental)'))], conf.get('backend', 'native'))
         fps = combo(playback, t('Fluidez de las escenas'), [(str(n), str(n) + ' FPS') for n in (15, 24, 30, 60)], conf.get('fps', 30))
         scaling = combo(playback, t('Cómo encaja'), [('fill', t('Rellenar la pantalla')),
@@ -607,13 +618,23 @@ class Window(Gtk.ApplicationWindow):
         state = core.status()
         phase = state.get('status', 'detenido')
         detail = localize(state.get('detail', ''))
-        paused = core.load_config().get('manual_paused', False)
+        conf = core.load_config()
+        saved_backend = conf.get('backend', 'native')
+        if saved_backend != self.observed_backend:
+            self.observed_backend = saved_backend
+            self.backend.set_active_id(saved_backend)
+        paused = conf.get('manual_paused', False)
         summary = (phase, detail, paused, state.get('launch_source'))
         if summary != self.last_status:
             text = {'activo': t('Reproduciendo'), 'pausado': t('En pausa'), 'cargando': t('Cargando'),
                     'espera': t('Fondo estático'), 'detenido': t('Listo para aplicar'), 'error': t('No se pudo aplicar')}.get(phase, phase)
-            if state.get('launch_source') == 'steam':
+            source = state.get('launch_source')
+            if source == 'steam':
                 text += ' · Steam'
+            elif source == 'native':
+                text += ' · ' + t('Nativo')
+            elif source == 'proton':
+                text += ' · Proton'
             self.status_label.set_text(text + ('\n' + detail if detail and phase not in ('espera', 'detenido') else ''))
             self.pause.set_label(t('Reanudar') if paused else t('Pausar'))
             self.pause.set_sensitive(bool(core.load_config().get('selection')))

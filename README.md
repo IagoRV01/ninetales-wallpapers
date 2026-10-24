@@ -4,7 +4,7 @@ A GTK wallpaper library and playback supervisor for **Hyprland with Caelestia**.
 Browse downloaded Wallpaper Engine projects, local videos, GIFs and images, choose
 an output, and restore the last wallpaper when your desktop starts.
 
-**Version 0.5.1a1 is a prerelease.** Native playback remains available.
+**Version 0.5.2a1 is a prerelease.** Native playback remains available.
 The official Windows renderer through Proton is experimental: its
 Wayland bridge is implemented, but full Wallpaper Engine playback has not yet
 been validated in a live desktop session. This project is independent of
@@ -133,7 +133,11 @@ asks Steam to launch application **431960**. A one-time launch option, shown wit
 copy and properties buttons in **Settings → Steam**, runs our wrapper for the
 lifetime of the real official renderer. This gives Steam ownership of the launch
 rather than assuming that setting an AppID environment variable records playtime.
-The interface only displays Steam's cached recorded minutes; it never writes a
+Ordinary Play in Steam without a pending request passes through to Steam's original
+launcher command. The companion app must select **Official · Proton** and apply a
+wallpaper to use its background bridge; selecting Native does not record Steam
+time merely because the launch option is installed. The interface displays the
+active launch source and only displays Steam's cached recorded minutes; it never writes a
 playtime counter. Account-side recording and synchronization are controlled by Steam
 and have not been verified end to end in the current restricted development session.
 
@@ -213,7 +217,7 @@ sprites are included. See [CONTRIBUTING.md](CONTRIBUTING.md),
 [CHANGELOG.md](CHANGELOG.md), and [release notes](docs/release-notes.md).
 
 A GitHub Actions workflow runs the unit tests. A separate tag-triggered workflow
-builds and publishes prerelease assets for `v0.5.1a1`. The local helper
+builds and publishes prerelease assets for `v0.5.2a1`. The local helper
 `scripts/publish.sh` can create a public repository and initial prerelease using
 an authenticated GitHub CLI; it never asks for a token on the command line.
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.2a1 — 2026-10-24
+
+- Preserve Steam's original launch command when Play is pressed without a pending
+  companion request, instead of exiting with an error. Preserve argv and exit status.
+- Clarify that native playback does not use the official executable or record Steam
+  playtime; show the actual launch source and synchronize externally changed settings.
+- Record official renderer startup output and early wrapper errors in local logs.
+- Accept harmless whitespace around a saved Steam launch option.
+
 ## 0.5.1a1 — 2026-10-24
 
 - Resolve Steam's X11 display from the current Hyprland session's Xwayland process,

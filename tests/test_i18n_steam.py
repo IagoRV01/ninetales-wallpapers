@@ -1,6 +1,8 @@
 import io
 import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 import signal
 import string
@@ -79,20 +81,45 @@ class SteamIntegrationTests(Environment):
         self.assertFalse(info['configured'])
         self.assertIsNone(info['playtime_minutes'])
 
-    def test_launch_wrapper_requires_a_steam_launch_and_fresh_request(self):
+    def test_launch_wrapper_requires_a_steam_launch(self):
         with patch.dict(os.environ, {'SteamAppId': '0'}):
             with self.assertRaisesRegex(ValueError, 'Steam'):
                 steam.wrapper(['/Steam/launcher.exe'])
-        with patch.dict(os.environ, {'SteamAppId': '431960'}):
-            with self.assertRaises(ValueError):
-                steam.wrapper(['/Steam/launcher.exe'])
         self.assertFalse(steam.RUNTIME.exists())
+
+    def test_play_in_steam_without_companion_request_preserves_genuine_command(self):
+        command = ['/Steam/steam-launch-wrapper', '--', '/Steam/Proton Experimental/proton',
+                   'waitforexitandrun', '/Steam/wallpaper_engine/launcher.exe', '-run', 'wallpaper64.exe']
+        core.save_config(backend='native')
+        before = core.CONFIG.read_bytes()
+        with patch.dict(os.environ, {'SteamAppId': '431960'}), \
+             patch('ninetales_wallpapers.steam_integration.os.execvpe', return_value=0) as run:
+            self.assertEqual(steam.wrapper(command), 0)
+        self.assertEqual(run.call_args.args[:2], (command[0], command))
+        self.assertEqual(core.CONFIG.read_bytes(), before)
+        self.assertFalse(steam.RUNTIME.exists())
+
+    def test_expired_request_also_preserves_steam_play(self):
+        core.atomic_json(steam.REQUEST, {'id': 'expired', 'created': time.time() - 500})
+        with patch.dict(os.environ, {'SteamAppId': '431960'}), \
+             patch('ninetales_wallpapers.steam_integration.os.execvpe', return_value=17):
+            self.assertEqual(steam.wrapper(['/Steam/launcher.exe']), 17)
+
+    def test_cli_wrapper_preserves_real_child_arguments_and_exit_status(self):
+        env = dict(os.environ, XDG_CONFIG_HOME=str(self.home / 'isolated-config'),
+                   XDG_STATE_HOME=str(self.home / 'isolated-state'), SteamAppId='431960')
+        result = subprocess.run([sys.executable, '-m', 'ninetales_wallpapers', 'steam-wrapper', '--',
+                                 sys.executable, '-c', 'import sys; print(sys.argv[1]); sys.exit(7)',
+                                 'STEAM ARGUMENT WITH SPACES'], env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 7, result.stderr)
+        self.assertEqual(result.stdout.strip(), 'STEAM ARGUMENT WITH SPACES')
 
     def test_wrapper_reports_frames_and_final_state_from_its_own_request(self):
         core.atomic_json(steam.REQUEST, {'id': 'fixture-request', 'created': time.time(),
                          'environment': {'XDG_RUNTIME_DIR': str(self.home / 'runtime'),
                                          'HYPRLAND_INSTANCE_SIGNATURE': 'fixture'}})
-        def make_bridge(on_ready):
+        def make_bridge(on_ready, output=None):
+            output.write('OFFICIAL_RENDERER_LOG_FIXTURE\n')
             return Mock(run=lambda: on_ready('eDP-1'))
         with patch.dict(os.environ, {'SteamAppId': '431960'}), \
              patch.object(Path, 'is_socket', return_value=True), \
@@ -103,6 +130,7 @@ class SteamIntegrationTests(Environment):
         self.assertEqual(state['ready_outputs'], ['eDP-1'])
         self.assertEqual(state['launch_source'], 'steam')
         self.assertTrue(state['stopped'])
+        self.assertIn('OFFICIAL_RENDERER_LOG_FIXTURE', (core.STATE_DIR / 'official-renderer.log').read_text())
 
     def test_never_signals_an_unrelated_same_user_process(self):
         with patch('ninetales_wallpapers.steam_integration.os.kill') as kill:

@@ -33,7 +33,7 @@ def main():
         if args.command == 'steam-wrapper':
             from .steam_integration import wrapper as run_wrapper
             command = args.steam_command
-            run_wrapper(command[1:] if command and command[0] == '--' else command)
+            return run_wrapper(command[1:] if command and command[0] == '--' else command) or 0
         elif args.command == 'daemon':
             from .daemon import Daemon
             Daemon().run()

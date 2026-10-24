@@ -141,5 +141,9 @@
   "No se pudo abrir la imagen.": "The image could not be opened.",
   "No se pudo abrir el GIF.": "The GIF could not be opened.",
   "Gestor detenido; fondo de Caelestia restaurado.": "Supervisor stopped; Caelestia wallpaper restored.",
-  "Sistema": "System"
+  "Sistema": "System",
+  "Nativo · sin horas de Steam": "Native · no Steam playtime",
+  "Nativo": "Native",
+  "El motor nativo no abre el .exe ni registra horas en Steam.": "The native renderer does not launch the .exe or record Steam playtime.",
+  "Con «Iniciar mediante Steam», aplica el fondo aquí para iniciar el motor oficial.": "With “Launch through Steam” enabled, apply the wallpaper here to start the official renderer."
 }

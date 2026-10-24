@@ -31,9 +31,15 @@ part of the wrapper invocation; the wrapper substitutes its own renderer startup
 for the Windows launcher UI. No proprietary files are patched or redistributed.
 
 Leave this launch option installed when using the companion app. Pressing Play
-in Steam without an active request from the companion app does not start a
-wallpaper; open the companion app to create the request. Remove the launch option
-to restore Steam's ordinary Wallpaper Engine launcher behavior.
+in Steam without an active companion request runs the original Steam command,
+including its runtime, launcher arguments and exit status. It no longer rejects
+that normal launch. To render through the companion app, choose **Official ·
+Proton**, enable **Launch through Steam**, and press **Apply wallpaper** there.
+The **Native · no Steam playtime** selection continues to use the community renderer;
+installing the Steam launch option alone does not change that selection.
+
+If Steam is set to ask which launch option to use, choose its 64-bit option when
+prompted, or set that option as the default in Steam's properties.
 
 ## Startup and lifetime
 
@@ -66,3 +72,12 @@ References: Valve's [per-game launch options](https://help.steampowered.com/en/f
 [wrapper example](https://help.steampowered.com/en/faqs/view/145A-FE54-F37B-278A),
 [Proton runtime options](https://github.com/ValveSoftware/Proton#runtime-config-options),
 and Wallpaper Engine's [official controls](https://help.wallpaperengine.io/en/functionality/cli.html).
+
+## Startup logs
+
+Bridge startup and child-process output are stored in
+`~/.local/state/ninetales-wallpapers/official-renderer.log`.
+A wrapper error before startup is recorded in `steam-wrapper-error.json` in the
+same directory. Renderer errors continue to be surfaced through the supervisor
+and the app; these logs help distinguish a Steam handoff failure from a Proton,
+virtual-display or Windows-renderer failure. Review personal paths before sharing.

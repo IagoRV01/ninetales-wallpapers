@@ -141,5 +141,9 @@
   "No se pudo abrir la imagen.": "L’image n’a pas pu être ouverte.",
   "No se pudo abrir el GIF.": "Le GIF n’a pas pu être ouvert.",
   "Gestor detenido; fondo de Caelestia restaurado.": "Gestionnaire arrêté ; fond Caelestia restauré.",
-  "Sistema": "Système"
+  "Sistema": "Système",
+  "Nativo · sin horas de Steam": "Natif · sans temps Steam",
+  "Nativo": "Natif",
+  "El motor nativo no abre el .exe ni registra horas en Steam.": "Le moteur natif ne lance pas le .exe et ne comptabilise pas de temps Steam.",
+  "Con «Iniciar mediante Steam», aplica el fondo aquí para iniciar el motor oficial.": "Avec « Lancer via Steam » activé, appliquez le fond ici pour démarrer le moteur officiel."
 }

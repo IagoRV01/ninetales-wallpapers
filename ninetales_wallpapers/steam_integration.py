@@ -5,6 +5,8 @@ AppID or running Proton directly is never described as Steam playtime tracking.
 """
 from __future__ import annotations
 
+from contextlib import redirect_stdout, redirect_stderr
+
 import os
 from pathlib import Path
 import secrets
@@ -61,7 +63,7 @@ def info():
         minutes = max(0, int(minutes)) if minutes is not None else None
     except (ValueError, TypeError):
         minutes = None
-    return {'configured': options == launch_options(), 'launch_options': launch_options(),
+    return {'configured': isinstance(options, str) and options.strip() == launch_options(), 'launch_options': launch_options(),
             'playtime_minutes': minutes}
 
 
@@ -147,15 +149,17 @@ def supervise():
                 time.sleep(0.2)
 
 
-def wrapper(command):
-    # Steam supplies its genuine launch command after '--'. We use the detected
-    # official renderer instead of the Windows launcher UI; keep this wrapper alive
-    # for the renderer lifetime so Steam owns the launch/process relationship.
+def _wrapper(command):
+    # Keep Steam's original command for ordinary Play. A fresh companion request
+    # selects the background bridge and keeps this Steam-owned process alive for
+    # the lifetime of the detected official renderer.
     if not command or os.environ.get('SteamAppId') != '431960':
         raise ValueError('Abre Wallpaper Engine desde Steam con las opciones indicadas en Ajustes.')
     request = core.read_json(REQUEST, {})
     if not request.get('id') or not 0 <= time.time() - request.get('created', 0) < 180:
-        raise ValueError('Abre primero Ninetales Wallpapers y aplica un fondo con el motor oficial.')
+        # Play in Steam must keep its ordinary behavior when the companion has not
+        # requested a background. Keep the genuine Steam runtime command intact.
+        return os.execvpe(command[0], command, os.environ)
     environment = request.get('environment', {})
     for key in SESSION_ENV:
         if key in environment and isinstance(environment[key], str):
@@ -185,7 +189,9 @@ def wrapper(command):
     thread = threading.Thread(target=publish, daemon=True)
     thread.start()
     try:
-        Bridge(on_ready=ready).run()
+        with (core.STATE_DIR / 'official-renderer.log').open('a', buffering=1) as log:
+            with redirect_stdout(log), redirect_stderr(log):
+                Bridge(on_ready=ready, output=log).run()
     except InterruptedError:
         pass
     except Exception as error:
@@ -196,6 +202,15 @@ def wrapper(command):
         thread.join(timeout=2)
         with lock:
             core.atomic_json(RUNTIME, {**state, 'stopped': True, 'heartbeat': time.time()})
+
+
+def wrapper(command):
+    try:
+        return _wrapper(command)
+    except Exception as error:
+        core.atomic_json(core.STATE_DIR / 'steam-wrapper-error.json',
+                         {'time': time.time(), 'error': str(error)})
+        raise
 
 
 def main():
