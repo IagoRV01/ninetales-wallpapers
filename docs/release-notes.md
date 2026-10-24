@@ -1,10 +1,18 @@
-# Ninetales Wallpapers 0.5.2a1
+# Ninetales Wallpapers 0.5.3a1
 
 A prerelease of the GTK wallpaper browser and supervisor for Hyprland with
 Caelestia. Includes native media playback, a community scene-renderer adapter,
 Workshop monitoring and an experimental official Windows renderer through Proton.
 
 ## New in this version
+
+- Correct the official renderer's executable / resource layout without modifying
+  Steam-owned files. This resolves the missing-shader failure observed during testing.
+- Fix control-command startup, private display teardown and native capture environment.
+- Check actual wallpaper output before replacing the static wallpaper; retain
+  diagnostic images in user state only.
+- Confirm live playback of Snowpoint City - Eevee through the official renderer,
+  with Steam tracking the session and cached recorded minutes increasing.
 
 - Fix Steam Play without a companion request: execute the original Steam launch
   command instead of rejecting it. A real child-process regression test checks
@@ -34,15 +42,16 @@ Proton, Wallpaper Engine or wallpaper content.
 
 ## Verification and limits
 
-The 64 Python tests pass, including Steam request lifecycle, prefix isolation,
+The 72 Python tests pass, including Steam request lifecycle, prefix isolation,
 translation completeness and placeholder checks. Real FFmpeg encoding to two FIFOs
 and decoding through two Qt Multimedia players passed. Six C++ assertions cover
 the community renderer geometry helper.
 
 A private-display GUI test is supplied and configured in CI; the local sandbox
 prevents creating its D-Bus / X11 sockets, so it has not run successfully here.
-Official renderer playback through Steam and changes to account-side playtime
-have not been verified end to end in a live session. The capture bridge is
+Official renderer playback through Steam was verified with one scene on the
+development system. Steam tracked that session and cached playtime increased;
+compatibility and account-side synchronization can vary. The capture bridge is
 software-heavy, capped at 30 FPS, mirrors selected displays and does not forward
 pointer interaction. Native playback remains an alternative. No general
 cross-distribution or full Windows feature compatibility is claimed.

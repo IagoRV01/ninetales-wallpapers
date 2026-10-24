@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.3a1 — 2026-10-24
+
+- Fix packaged executable resource lookup with a private application layout that
+  keeps the installed executable beside links to its assets, binaries and projects.
+- Fix short control commands using Proton `runinprefix`, instead of waiting on a
+  second game-launch bootstrap; keep private display credentials alive through shutdown.
+- Verify the private X11 connection and report immediate Proton startup failures.
+- Capture the dedicated virtual viewport and reject black wallpaper output even
+  when a Windows error dialog is visible elsewhere on that viewport.
+- Save private renderer diagnostics and isolate native capture from Steam runtime libraries.
+- Validate the official Snowpoint City - Eevee scene in a live desktop session;
+  Steam tracked the running application and its cached recorded time increased.
+
 ## 0.5.2a1 — 2026-10-24
 
 - Preserve Steam's original launch command when Play is pressed without a pending

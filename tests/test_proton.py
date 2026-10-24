@@ -28,7 +28,7 @@ class ProtonTests(Environment):
         root = self.project('Workshop/123 a $(touch nope)')
         wall = core.wallpaper_from_path(root)
         cmd = proton.open_command(found, wall, 'Private title', 1920, 1080)
-        self.assertEqual(cmd[:3], [found['proton'], 'run', found['exe']])
+        self.assertEqual(cmd[:3], [found['proton'], 'runinprefix', found['exe']])
         self.assertEqual(cmd[cmd.index('-file') + 1], 'Z:' + str(root / 'project.json').replace('/', '\\'))
         self.assertEqual(cmd[cmd.index('-playInWindow') + 1], 'Private title')
         self.assertIn('-borderless', cmd)
@@ -83,6 +83,120 @@ class ProtonTests(Environment):
         self.assertTrue((clone / 'dosdevices/z:').is_symlink())
         (clone / 'user.reg').write_text('changed')
         self.assertEqual((seed / 'user.reg').read_text(), 'original')
+
+    def test_failed_proton_start_is_reported_before_waiting_for_a_wallpaper_window(self):
+        import io
+        project = self.project()
+        core.save_config(selection=core.wallpaper_from_path(project).as_dict())
+        bridge = Bridge()
+        server = Mock()
+        server.poll.return_value = None
+        startup = Mock(returncode=23)
+        startup.poll.return_value = 23
+        found = {'proton': '/fixture/proton', 'exe': '/fixture/wallpaper64.exe', 'steam': '/fixture/Steam'}
+        def launch(argv, **kwargs):
+            if argv[0] == 'Xvfb':
+                os.write(kwargs['pass_fds'][0], b'99\n')
+                return server
+            return startup
+        with patch('ninetales_wallpapers.proton.validate', return_value=found), \
+             patch.object(core, 'monitors', return_value=[{'name': 'eDP-1', 'width': 1920, 'height': 1080}]), \
+             patch.object(bridge, 'seed_prefix'), patch.object(bridge, 'launch', side_effect=launch), \
+             patch('ninetales_wallpapers.proton_bridge.subprocess.run', return_value=Mock(returncode=0, stdout='root', stderr='')), \
+             patch('sys.stdout', io.StringIO()):
+            with self.assertRaisesRegex(ValueError, '23'):
+                bridge.play()
+
+    def test_control_commands_do_not_start_another_steam_game_bootstrap(self):
+        found = {'proton': '/Proton/proton', 'exe': '/Engine/wallpaper64.exe'}
+        self.assertEqual(proton.command(found, '-silent'), ['/Proton/proton', 'run', '/Engine/wallpaper64.exe', '-silent'])
+        self.assertEqual(proton.control_command(found, 'unmute'),
+                         ['/Proton/proton', 'runinprefix', '/Engine/wallpaper64.exe', '-control', 'unmute'])
+
+    def test_private_display_files_remain_until_process_cleanup_on_failure(self):
+        bridge = Bridge()
+        seen = []
+        directory = None
+        def cleanup():
+            seen.append(Path(directory).is_dir())
+        with patch.object(bridge, 'cleanup', side_effect=cleanup):
+            with self.assertRaisesRegex(ValueError, 'fixture'):
+                with bridge.virtual_directory() as value:
+                    directory = value
+                    raise ValueError('fixture')
+        self.assertEqual(seen, [True])
+        self.assertFalse(Path(directory).exists())
+
+    def test_private_viewport_capture_keeps_the_private_display_and_dimensions(self):
+        cmd = proton.capture_command(':99', None, 1920, 1080, 30, [Path('/private/one.ts')])
+        self.assertNotIn('-window_id', cmd)
+        self.assertEqual(cmd[cmd.index('-i') + 1], ':99')
+        self.assertEqual(cmd[cmd.index('-video_size') + 1], '1920x1080')
+
+    def test_capture_does_not_inherit_steam_runtime_libraries(self):
+        original = {'DISPLAY': ':99', 'XAUTHORITY': '/private/auth', 'LD_LIBRARY_PATH': '/Steam/runtime', 'LD_PRELOAD': '/Steam/overlay.so'}
+        env = proton.capture_environment(original)
+        self.assertEqual(env['DISPLAY'], ':99')
+        self.assertEqual(env['XAUTHORITY'], '/private/auth')
+        self.assertNotIn('LD_LIBRARY_PATH', env)
+        self.assertNotIn('LD_PRELOAD', env)
+        self.assertIn('LD_LIBRARY_PATH', original)
+
+    def test_black_wallpaper_with_visible_error_dialog_never_starts_the_wayland_player(self):
+        import io
+        project = self.project()
+        core.save_config(selection=core.wallpaper_from_path(project).as_dict())
+        ready = Mock()
+        bridge = Bridge(on_ready=ready)
+        server = Mock(); server.poll.return_value = None
+        startup = Mock(); startup.poll.return_value = None
+        found = {'proton': '/fixture/proton', 'exe': '/fixture/wallpaper64.exe', 'steam': '/fixture/Steam'}
+        token = 'a' * 32
+        def launch(argv, **kwargs):
+            if argv[0] == 'Xvfb':
+                os.write(kwargs['pass_fds'][0], b'99\n')
+                return server
+            return startup
+        tree = Mock(returncode=0, stdout='0x123 "NinetalesWallpaper-' + token + '"', stderr='')
+        with patch('ninetales_wallpapers.proton.validate', return_value=found), \
+             patch.object(core, 'monitors', return_value=[{'name': 'eDP-1', 'width': 1920, 'height': 1080}]), \
+             patch.object(bridge, 'seed_prefix'), patch.object(bridge, 'launch', side_effect=launch) as calls, \
+             patch.object(bridge, 'control'), patch.object(bridge, 'sleep'), \
+             patch.object(bridge, 'inspect_frame', side_effect=[False, True, False, True]), \
+             patch('ninetales_wallpapers.proton_bridge.subprocess.run', return_value=tree), \
+             patch('ninetales_wallpapers.proton_bridge.secrets.token_hex', return_value=token), \
+             patch('sys.stdout', io.StringIO()):
+            with self.assertRaisesRegex(ValueError, 'negra'):
+                bridge.play()
+        ready.assert_not_called()
+        self.assertEqual(calls.call_count, 2)  # Xvfb and official startup only.
+
+    def test_distribution_executable_gets_a_complete_private_resource_layout(self):
+        root = self.home / 'Steam/wallpaper_engine'
+        exe = root / 'distribution/wallpaper64.exe'
+        exe.parent.mkdir(parents=True)
+        exe.write_bytes(b'genuine-source-fixture')
+        (root / 'distribution/bin').mkdir()
+        (root / 'assets/shaders/HLSL').mkdir(parents=True)
+        (root / 'assets/shaders/HLSL/dx11fallback.vert').write_text('fixture')
+        (root / 'config.json').write_text('{"preserved": true}')
+        target = self.home / 'private/application'
+        found = proton.prepare_application({'exe': str(exe), 'proton': '/proton'}, {'fps': 60}, target)
+        self.assertEqual(Path(found['exe']).read_bytes(), exe.read_bytes())
+        self.assertFalse(Path(found['exe']).is_symlink())
+        self.assertTrue((target / 'assets/shaders/HLSL/dx11fallback.vert').is_file())
+        self.assertTrue((target / 'bin').is_symlink())
+        cfg = core.read_json(target / 'config.json', {})
+        self.assertTrue(cfg['preserved'])
+        self.assertEqual(cfg['steamuser']['general']['user']['fps'], 30)
+        self.assertEqual((root / 'config.json').read_text(), '{"preserved": true}')
+
+    def test_private_layout_refuses_an_incomplete_steam_download(self):
+        exe = self.home / 'Steam/distribution/wallpaper64.exe'
+        exe.parent.mkdir(parents=True); exe.touch()
+        with self.assertRaisesRegex(ValueError, 'Steam'):
+            proton.prepare_application({'exe': str(exe)}, {}, self.home / 'private')
+        self.assertFalse((self.home / 'private').exists())
 
     def test_cleanup_addresses_only_own_prefix(self):
         bridge = Bridge()

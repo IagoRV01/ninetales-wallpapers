@@ -2,8 +2,8 @@
 
 This option invokes the Windows `wallpaper64.exe` from your own Steam installation.
 It is not an official Linux port. The bridge has unit coverage and its stream has
-been decoded successfully through Qt Multimedia, but a complete live-desktop run
-with Wallpaper Engine has **not** been verified. A successful dependency check is
+been decoded successfully through Qt Multimedia, and a complete live-desktop run with
+the Snowpoint City - Eevee scene has now been verified on the development system. A successful dependency check is
 not a successful playback test.
 
 ## Setup
@@ -41,7 +41,7 @@ the executable `proton` script, not its directory. Restart playback after editin
   The bridge removes the Wayland display variable from its Windows environment.
 - Proton starts the installed renderer. Its documented `openWallpaper` control
   opens a uniquely named, borderless window at the selected output resolution.
-- FFmpeg captures that exact X11 window. One H.264 encoder writes independent
+- FFmpeg captures the dedicated virtual viewport, including Wine-rendered child windows. One H.264 encoder writes independent
   MPEG-TS FIFOs for each selected output. Qt Multimedia decodes those streams into
   Quickshell Wayland background surfaces. The user's desktop is never captured.
 - Readiness is reported only when a video frame arrives. Caelestia keeps its static
@@ -80,3 +80,22 @@ backend; do not remove or edit Steam's prefix in an attempt to repair the bridge
 
 An inactive background after an error is intentional: Caelestia's wallpaper is
 kept visible. No automatic crash loop or repeated Windows restart is attempted.
+
+## Installed application layout and startup checks
+
+In the tested Steam installation, the executable was under `distribution/` while
+its assets were in the parent folder. Running that file in place left HLSL shaders
+and materials unresolved and caused a WineD3D crash. The bridge now assembles a
+private application directory with an exact local executable copy and links to the
+installed resources. Its own configuration controls framerate and leaves automatic
+fullscreen pausing to our supervisor. Steam's installation is not modified.
+
+Main startup uses Proton's `run` verb. Commands targeting that existing renderer
+use `runinprefix`; using the game-launch verb for short controls could wait for the
+whole session and incorrectly report a control timeout. Xauthority and stream files
+are retained until their owning processes have exited.
+
+Before starting the visible layer, the bridge checks the wallpaper window and
+private viewport. A black wallpaper window is rejected even if a Windows crash
+dialog makes the rest of the viewport nonblack. Diagnostic PNGs are saved in user
+state, never in the release archives. No real desktop or other application is captured.

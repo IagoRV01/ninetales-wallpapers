@@ -4,6 +4,8 @@ Never captures the user's display. Every child, prefix and stream belongs to thi
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
+
 import fcntl
 import json
 import os
@@ -51,7 +53,7 @@ class Bridge:
             raise InterruptedError('Bridge stopped')
 
     def control(self, *args):
-        p = self.launch(proton.command(self.found, '-control', *args), env=self.env,
+        p = self.launch(proton.control_command(self.found, *args), env=self.env,
                         cwd=proton.engine_cwd(self.found))
         try:
             p.wait(timeout=10)
@@ -60,6 +62,29 @@ class Bridge:
             raise ValueError('El motor oficial no responde al control.')
         if p.returncode:
             raise ValueError('El motor oficial rechazó el comando de control.')
+
+    def inspect_frame(self, display, width, height, window=None):
+        name = 'official-window.png' if window else 'official-display.png'
+        path = core.STATE_DIR / name
+        source = ['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-y', '-f', 'x11grab',
+                  '-draw_mouse', '0', '-framerate', '1', '-video_size', f'{width}x{height}']
+        if window:
+            source += ['-window_id', window]
+        source += ['-i', display, '-frames:v', '1', '-vf', 'scale=1280:-2', '-threads', '1', '-update', '1', str(path)]
+        env = proton.capture_environment(self.env)
+        result = subprocess.run(source, env=env, capture_output=True, timeout=10)
+        if result.returncode:
+            print(result.stderr.decode(errors='replace'), flush=True)
+            raise ValueError('No se pudo comprobar la imagen del motor oficial. Consulta official-renderer.log.')
+        raw = subprocess.run(['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'error', '-i', str(path),
+                              '-frames:v', '1', '-vf', 'scale=160:90', '-pix_fmt', 'rgb24', '-f', 'rawvideo', '-'],
+                             env=env, capture_output=True, timeout=10)
+        if raw.returncode or len(raw.stdout) != 160 * 90 * 3:
+            raise ValueError('No se pudo comprobar la imagen del motor oficial. Consulta official-renderer.log.')
+        peak = max(raw.stdout)
+        mean = sum(raw.stdout) / len(raw.stdout)
+        print(f'NW_FRAME: {name} peak={peak} mean={mean:.3f}', flush=True)
+        return peak > 5
 
     def seed_prefix(self):
         if (self.prefix / 'pfx').is_dir():
@@ -105,6 +130,17 @@ class Bridge:
                         child.wait(timeout=1)
                     except (ProcessLookupError, subprocess.TimeoutExpired):
                         pass
+        self.children.clear()
+        self.env = None
+
+    @contextmanager
+    def virtual_directory(self):
+        # Keep Xauthority and FIFOs alive until every owning process has stopped.
+        with tempfile.TemporaryDirectory(prefix='nw-proton-') as temporary:
+            try:
+                yield temporary
+            finally:
+                self.cleanup()
 
     def run(self):
         self.root.mkdir(parents=True, exist_ok=True)
@@ -125,6 +161,7 @@ class Bridge:
     def play(self):
         config = core.load_config()
         self.found = proton.validate(config)
+        self.found = proton.prepare_application(self.found, config, self.root / 'application')
         wall = core.wallpaper_from_path(Path(config['selection']['path']))
         screens = [s for s in core.monitors() if config.get('output', '*') in ('*', s['name'])]
         if not screens:
@@ -135,8 +172,9 @@ class Bridge:
         width += width % 2
         height += height % 2
         fps = min(int(config.get('fps', 30)), 30)
+        print('NW_STAGE: Preparing the Proton prefix', flush=True)
         self.seed_prefix()
-        with tempfile.TemporaryDirectory(prefix='nw-proton-') as temporary:
+        with self.virtual_directory() as temporary:
             temp = Path(temporary)
             authority = temp / 'Xauthority'
             authority.touch(mode=0o600)
@@ -169,8 +207,15 @@ class Bridge:
                                   field(b'MIT-MAGIC-COOKIE-1') + field(bytes.fromhex(cookie)))
             display = ':' + number
             self.env = proton.environment(self.found, display, authority, self.prefix)
-            self.launch(proton.command(self.found, '-silent'), env=self.env,
-                        cwd=proton.engine_cwd(self.found))
+            print('NW_STAGE: Checking the private X11 connection', flush=True)
+            probe = subprocess.run(['xwininfo', '-display', display, '-root', '-tree'], env=self.env,
+                                   capture_output=True, text=True, timeout=5)
+            if probe.returncode:
+                print(probe.stderr, flush=True)
+                raise ValueError('No se puede conectar a la pantalla virtual. Consulta official-renderer.log.')
+            print('NW_STAGE: Starting Wallpaper Engine through Proton', flush=True)
+            startup = self.launch(proton.command(self.found, '-silent'), env=self.env,
+                                  cwd=proton.engine_cwd(self.found))
             title = 'NinetalesWallpaper-' + secrets.token_hex(8)
             window = None
             deadline = time.monotonic() + 100
@@ -178,6 +223,8 @@ class Bridge:
             while self.running and time.monotonic() < deadline:
                 if xvfb.poll() is not None:
                     raise ValueError('La pantalla virtual se cerró.')
+                if startup.poll() not in (None, 0):
+                    raise ValueError(f'Proton terminó al iniciar ({startup.returncode}). Consulta official-renderer.log.')
                 if time.monotonic() >= next_open:
                     self.launch(proton.open_command(self.found, wall, title, width, height),
                                 env=self.env, cwd=proton.engine_cwd(self.found))
@@ -191,14 +238,27 @@ class Bridge:
                 self.sleep(1)
             if not window:
                 raise ValueError('Proton no abrió el fondo oficial. Consulta renderer.log; puedes volver al motor nativo.')
+            print('NW_STAGE: Wallpaper window found; starting the Wayland stream', flush=True)
             self.control('mute' if config.get('muted', True) else 'unmute')
+            self.control('play')
+            print(tree.stdout, flush=True)
+            window_visible = self.inspect_frame(display, width, height, window)
+            # Wine's GL child windows can be absent from XGetImage of their parent.
+            # Capture the dedicated Xvfb viewport, which contains only this renderer.
+            visible = self.inspect_frame(display, width, height)
+            if not window_visible or not visible:
+                self.sleep(5)
+                window_visible = self.inspect_frame(display, width, height, window)
+                visible = self.inspect_frame(display, width, height)
+            if not window_visible or not visible:
+                raise ValueError('El motor oficial produce una imagen negra. Consulta official-display.png y official-renderer.log.')
             streams = {s['name']: temp / f'wallpaper-{i}.ts' for i, s in enumerate(screens)}
             for fifo in streams.values():
                 os.mkfifo(fifo, 0o600)
             # Encode once, then send an independent stream to each output decoder.
             player_env = core.qt_environment()
             player_env['NW_STREAMS'] = json.dumps({name: p.as_uri() for name, p in streams.items()})
-            capture = self.launch(proton.capture_command(display, window, width, height, fps, streams.values()), env=self.env)
+            capture = self.launch(proton.capture_command(display, None, width, height, fps, streams.values()), env=proton.capture_environment(self.env))
             player = self.launch([core.quickshell_path(), '--no-color', '-p', str(core.PROJECT / 'player/shell.qml')],
                                  env=player_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
             def read_frames():

@@ -53,3 +53,17 @@ The project does not authenticate to Steam, bypass ownership, scrape Workshop or
 redistribute renderer assets. It does not alter the display manager, login session
 or OS package sources. Only the dependency/build helper invokes package management.
 Source release archives use an explicit allowlist and contain no user state.
+
+## Official startup validation
+
+The bridge resolves packaged executable layouts into a private runtime folder so
+resource lookup matches the installed assets. Main startup and short IPC controls
+use different Proton verbs (`run` and `runinprefix`). Native capture tools receive
+a clean library environment, while Wine keeps its own runtime environment.
+
+Startup saves diagnostics of the renderer window and its dedicated virtual screen.
+It rejects black wallpaper output even if a crash dialog is visible on that private
+screen. Capture includes the dedicated viewport's child windows, and readiness is
+forwarded after actual decoded frames. Display credentials and FIFOs are removed
+only after process shutdown. This path was validated with one live official scene;
+it is still an experimental backend with project-dependent compatibility.

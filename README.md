@@ -4,10 +4,10 @@ A GTK wallpaper library and playback supervisor for **Hyprland with Caelestia**.
 Browse downloaded Wallpaper Engine projects, local videos, GIFs and images, choose
 an output, and restore the last wallpaper when your desktop starts.
 
-**Version 0.5.2a1 is a prerelease.** Native playback remains available.
+**Version 0.5.3a1 is a prerelease.** Native playback remains available.
 The official Windows renderer through Proton is experimental: its
-Wayland bridge is implemented, but full Wallpaper Engine playback has not yet
-been validated in a live desktop session. This project is independent of
+Wayland bridge has now been validated with the Snowpoint City - Eevee scene on
+the Mint / Hyprland development system. Other projects and configurations may differ. This project is independent of
 Wallpaper Engine, Valve, Hyprland and Caelestia.
 
 ## Features
@@ -34,7 +34,7 @@ Project documentation is in English. Choose the interface language in **Settings
 | Content | Native backend | Official backend through Proton |
 | --- | --- | --- |
 | Images, GIFs, videos | Qt Multimedia / Qt Quick | Experimental capture bridge |
-| Wallpaper Engine scenes | External community renderer; compatibility varies | Uses your installed Windows renderer; unverified end to end |
+| Wallpaper Engine scenes | External community renderer; compatibility varies | Validated with one installed scene on the development system |
 | Web wallpapers | External renderer; compatibility varies | Unverified, dependent on Proton and Windows components |
 | Application / executable wallpapers | Rejected by the library | Rejected by the library |
 | Multiple outputs | Native output surfaces | Same rendered content mirrored to selected outputs |
@@ -42,7 +42,7 @@ Project documentation is in English. Choose the interface language in **Settings
 
 Wallpaper Engine has no official Linux desktop version. Its Windows executable
 cannot directly become a Wayland wallpaper surface. The experimental bridge
-runs it on an isolated Xvfb display, captures only the named wallpaper window,
+runs it on an isolated Xvfb display, captures its dedicated virtual viewport,
 then displays the stream through native Wayland background layers. It uses
 WineD3D and software encoding, caps capture at 30 FPS, and may use substantial
 CPU. Fresh installations select the official backend with Steam-managed launching, as a Wallpaper Engine companion. Complete the one-time Steam setup before applying a wallpaper. The native backend remains available from the renderer selector and avoids the experimental capture path.
@@ -139,7 +139,7 @@ wallpaper to use its background bridge; selecting Native does not record Steam
 time merely because the launch option is installed. The interface displays the
 active launch source and only displays Steam's cached recorded minutes; it never writes a
 playtime counter. Account-side recording and synchronization are controlled by Steam
-and have not been verified end to end in the current restricted development session.
+and remain outside this application's control. A live scene session was observed in Steam's tracked-process log and its cached time increased during testing.
 
 When **Start wallpaper when opening the app** is enabled, opening the GUI restores
 the selected wallpaper. On the first official-engine start, the installed default
@@ -217,7 +217,7 @@ sprites are included. See [CONTRIBUTING.md](CONTRIBUTING.md),
 [CHANGELOG.md](CHANGELOG.md), and [release notes](docs/release-notes.md).
 
 A GitHub Actions workflow runs the unit tests. A separate tag-triggered workflow
-builds and publishes prerelease assets for `v0.5.2a1`. The local helper
+builds and publishes prerelease assets for `v0.5.3a1`. The local helper
 `scripts/publish.sh` can create a public repository and initial prerelease using
 an authenticated GitHub CLI; it never asks for a token on the command line.
 

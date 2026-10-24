@@ -61,8 +61,9 @@ active-account local preferences. That value can lag behind a running session an
 is not a live stopwatch. The app never writes playtime or claims that an AppID
 environment variable alone counts hours. Steam controls account-side recording and
 synchronization; compare its library before and after a completed renderer session
-when validating your setup. This full account-side test has not yet been performed
-in the current restricted development environment.
+when validating your setup. A live official scene session has now been observed in Steam's tracked-process log,
+and its cached recorded minutes increased during testing. This does not promise
+identical recording behavior across accounts or offline conditions.
 
 Disabling **Launch through Steam** uses direct Proton execution. Native playback
 also remains available. Neither mode is presented as guaranteed Steam playtime

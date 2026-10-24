@@ -145,5 +145,10 @@
   "Nativo · sin horas de Steam": "Nativo · sem horas no Steam",
   "Nativo": "Nativo",
   "El motor nativo no abre el .exe ni registra horas en Steam.": "O motor nativo não inicia o .exe nem regista horas no Steam.",
-  "Con «Iniciar mediante Steam», aplica el fondo aquí para iniciar el motor oficial.": "Com « Iniciar pelo Steam » ativado, aplica o fundo aqui para iniciar o motor oficial."
+  "Con «Iniciar mediante Steam», aplica el fondo aquí para iniciar el motor oficial.": "Com « Iniciar pelo Steam » ativado, aplica o fundo aqui para iniciar o motor oficial.",
+  "No se puede conectar a la pantalla virtual. Consulta official-renderer.log.": "Não é possível ligar ao ecrã virtual. Consulta official-renderer.log.",
+  "Proton terminó al iniciar ({code}). Consulta official-renderer.log.": "O Proton terminou ao iniciar ({code}). Consulta official-renderer.log.",
+  "No se pudo comprobar la imagen del motor oficial. Consulta official-renderer.log.": "Não foi possível verificar a imagem do motor oficial. Consulta official-renderer.log.",
+  "El motor oficial produce una imagen negra. Consulta official-display.png y official-renderer.log.": "O motor oficial produz uma imagem preta. Consulta official-display.png e official-renderer.log.",
+  "Faltan recursos de Wallpaper Engine. Verifica sus archivos en Steam.": "Faltam recursos do Wallpaper Engine. Verifica os seus ficheiros no Steam."
 }
