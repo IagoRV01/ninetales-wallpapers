@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+apt-plan.txt
+*.log
+.env
+.env.*
+*.exe
+*.dll
+*.pkg
+*.acf
+*.reg

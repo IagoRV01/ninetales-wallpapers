@@ -1,0 +1,27 @@
+name: Source release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m unittest discover -s tests -v
+      - name: Verify version and build
+        run: |
+          version=$(python3 -c 'from ninetales_wallpapers import __version__; print(__version__)')
+          test "$GITHUB_REF_NAME" = "v$version"
+          python3 scripts/build-release.py
+      - name: Publish source prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" dist/*.tar.gz dist/*.zip dist/SHA256SUMS
+          --verify-tag --prerelease --title "Ninetales Wallpapers $GITHUB_REF_NAME"
+          --notes-file docs/release-notes.md
