@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from ninetales_wallpapers import __version__
 
-TOP = ('README.md', 'LICENSE', 'CHANGELOG.md', 'CONTRIBUTING.md',
+TOP = ('AUTHORS', '.mailmap', 'README.md', 'LICENSE', 'CHANGELOG.md', 'CONTRIBUTING.md',
        'THIRD_PARTY_NOTICES.md', '.gitignore', 'install.py', 'uninstall.py',
        'install-renderer.sh', 'patch-renderer.py')
 DIRECTORIES = ('ninetales_wallpapers', 'player', 'tests', 'docs', 'scripts', '.github', 'integrations')

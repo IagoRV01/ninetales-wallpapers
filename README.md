@@ -1,5 +1,7 @@
 # Ninetales Wallpapers
 
+Created and maintained by [IagoRV01](https://github.com/IagoRV01).
+
 A GTK wallpaper library and playback supervisor for **Hyprland with Caelestia**.
 Browse downloaded Wallpaper Engine projects, local videos, GIFs and images, choose
 an output, and restore the last wallpaper when your desktop starts.

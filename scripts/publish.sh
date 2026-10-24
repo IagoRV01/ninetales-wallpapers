@@ -7,6 +7,19 @@ gh auth status >/dev/null
 owner=$(gh api user --jq .login)
 account_id=$(gh api user --jq .id)
 [[ $owner =~ ^[A-Za-z0-9-]+$ && $account_id =~ ^[0-9]+$ ]]
+canonical_email=$(git config --local user.email || true)
+[[ -n $canonical_email ]] || canonical_email="$account_id+$owner@users.noreply.github.com"
+git config --local user.name "$owner"
+git config --local user.email "$canonical_email"
+# Collapse this project's existing local aliases into the owner identity.
+# No co-author trailers are added and no third-party notices are removed.
+python3 - "$owner" "$canonical_email" <<'PYAUTHOR'
+from pathlib import Path
+import sys
+owner, email = sys.argv[1:]
+Path('.mailmap').write_text(f'{owner} <{email}> iago <iago@localhost>\n'
+                          f'{owner} <{email}> {owner} <{owner}@users.noreply.github.com>\n')
+PYAUTHOR
 repo="$owner/ninetales-wallpapers"
 version=$(python3 -c 'from ninetales_wallpapers import __version__; print(__version__)')
 python3 -m unittest discover -s tests
@@ -41,7 +54,7 @@ if unexpected:
     raise SystemExit('Refusing publication with unexpected tracked files: ' + ', '.join(sorted(unexpected)))
 PYINDEX
 if ! git diff --cached --quiet; then
- git -c user.name="$owner" -c user.email="$account_id+$owner@users.noreply.github.com" \
+ git -c user.name="$owner" -c user.email="$canonical_email" \
    commit -m "Release Ninetales Wallpapers $version prerelease"
 fi
 # A pre-existing repository is never overwritten or deleted.
