@@ -212,7 +212,8 @@ class WorkshopTests(Environment):
         launcher.parent.mkdir(parents=True)
         launcher.write_text('#!/bin/sh\n')
         launcher.chmod(0o755)
-        with patch('ninetales_wallpapers.core.subprocess.Popen') as launch:
+        with patch('ninetales_wallpapers.core.subprocess.Popen') as launch, \
+             patch('ninetales_wallpapers.desktop.desktop_environment', return_value={'DISPLAY': ':3'}):
             core.open_steam('workshop')
             self.assertEqual(launch.call_args.args[0], [str(launcher), 'steam://openurl/https://steamcommunity.com/app/431960/workshop/'])
             core.open_steam('downloads')

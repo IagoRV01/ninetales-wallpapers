@@ -1,10 +1,15 @@
-# Ninetales Wallpapers 0.5.0a1
+# Ninetales Wallpapers 0.5.1a1
 
 A prerelease of the GTK wallpaper browser and supervisor for Hyprland with
 Caelestia. Includes native media playback, a community scene-renderer adapter,
 Workshop monitoring and an experimental official Windows renderer through Proton.
 
 ## New in this version
+
+- Verified selection of the current desktop Xwayland display for Steam launches.
+- A backed-up user-local Steam launcher repair, without changing X server permissions.
+- A Caelestia QML extension that restores icon search paths for private Qt builds;
+  eight representative installed icons successfully resolve and decode.
 
 - Steam-managed official-renderer sessions through a one-time launch option.
 - Cached Steam playtime display; the application never modifies recorded playtime.
@@ -23,7 +28,7 @@ Proton, Wallpaper Engine or wallpaper content.
 
 ## Verification and limits
 
-The 53 Python tests pass, including Steam request lifecycle, prefix isolation,
+The 61 Python tests pass, including Steam request lifecycle, prefix isolation,
 translation completeness and placeholder checks. Real FFmpeg encoding to two FIFOs
 and decoding through two Qt Multimedia players passed. Six C++ assertions cover
 the community renderer geometry helper.

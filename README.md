@@ -4,7 +4,7 @@ A GTK wallpaper library and playback supervisor for **Hyprland with Caelestia**.
 Browse downloaded Wallpaper Engine projects, local videos, GIFs and images, choose
 an output, and restore the last wallpaper when your desktop starts.
 
-**Version 0.5.0a1 is a prerelease.** Native playback remains available.
+**Version 0.5.1a1 is a prerelease.** Native playback remains available.
 The official Windows renderer through Proton is experimental: its
 Wayland bridge is implemented, but full Wallpaper Engine playback has not yet
 been validated in a live desktop session. This project is independent of
@@ -163,6 +163,29 @@ fallbacks apply). `renderer.log` contains player diagnostics. Configuration
 includes local paths; review it before sharing. The experimental Proton prefix
 is stored separately under `~/.local/share/ninetales-wallpapers/proton/`.
 
+## Desktop repairs on Mint
+
+If Steam reports that it cannot open X11 from a Hyprland session, the optional
+repair helper installs a standalone user-local launcher that resolves the current
+session's Xwayland display and authentication path. A candidate is used only if
+an X11 connection succeeds. It does not guess `:0`, alter X server access control,
+restart Xwayland, or reuse the renderer's private Xvfb display. It also imports
+DISPLAY / XAUTHORITY with the existing desktop activation environment on the next
+login. Connection probing uses `xdpyinfo` from `x11-utils`.
+
+```bash
+python3 scripts/repair-desktop.py --steam-only
+```
+
+To repair Caelestia's private-Qt icon lookup as well, run the helper without that
+flag. This requires the matching Qt SDK and a C++ compiler. See
+[integrations/caelestia-icons](integrations/caelestia-icons/README.md).
+It verifies the module before installing it, backs up modified files, and adds
+standard icon search paths inside Caelestia. No application icons are replaced
+with hand-drawn images. Its standalone Steam launch diagnostic is stored at
+`~/.local/state/steam-mint/last-launch.json` and contains routing metadata, not
+cookies or credentials.
+
 ## Uninstall
 
 ```bash
@@ -190,7 +213,7 @@ sprites are included. See [CONTRIBUTING.md](CONTRIBUTING.md),
 [CHANGELOG.md](CHANGELOG.md), and [release notes](docs/release-notes.md).
 
 A GitHub Actions workflow runs the unit tests. A separate tag-triggered workflow
-builds and publishes prerelease assets for `v0.5.0a1`. The local helper
+builds and publishes prerelease assets for `v0.5.1a1`. The local helper
 `scripts/publish.sh` can create a public repository and initial prerelease using
 an authenticated GitHub CLI; it never asks for a token on the command line.
 

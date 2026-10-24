@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1a1 — 2026-10-24
+
+- Resolve Steam's X11 display from the current Hyprland session's Xwayland process,
+  verifying the connection before replacing inherited display / authentication values.
+- Preserve failed-probe environments and ignore other users, other sessions and Xvfb.
+- Repair the user-local Steam launcher and next-login activation environment.
+- Add a scoped QML extension for private Qt icon search paths; verify icon decoding
+  before installing it. No global preload or application icon replacement is used.
+
 ## 0.5.0a1 — 2026-10-24
 
 - Add Steam-owned official-renderer sessions using a documented launch-option

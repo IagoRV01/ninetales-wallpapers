@@ -15,7 +15,7 @@ from ninetales_wallpapers import __version__
 TOP = ('README.md', 'LICENSE', 'CHANGELOG.md', 'CONTRIBUTING.md',
        'THIRD_PARTY_NOTICES.md', '.gitignore', 'install.py', 'uninstall.py',
        'install-renderer.sh', 'patch-renderer.py')
-DIRECTORIES = ('ninetales_wallpapers', 'player', 'tests', 'docs', 'scripts', '.github')
+DIRECTORIES = ('ninetales_wallpapers', 'player', 'tests', 'docs', 'scripts', '.github', 'integrations')
 
 
 def source_files():
@@ -23,7 +23,8 @@ def source_files():
     for directory in DIRECTORIES:
         files.extend(p for p in (ROOT / directory).rglob('*')
                      if p.is_file() and '__pycache__' not in p.parts and
-                     (p.suffix in ('.py', '.qml', '.md', '.sh', '.yml', '.yaml') or
+                     (p.suffix in ('.py', '.qml', '.md', '.sh', '.yml', '.yaml', '.cpp') or
+                      p.name == 'qmldir' or
                       (p.parent == ROOT / 'ninetales_wallpapers/locales' and p.name in ('es.json', 'en.json', 'fr.json', 'pt.json'))))
     for path in files:
         if path.is_symlink() or not path.resolve().is_relative_to(ROOT):

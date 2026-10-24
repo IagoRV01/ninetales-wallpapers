@@ -332,9 +332,11 @@ def open_steam(section='workshop'):
         if not found:
             raise ValueError('No se encuentra Steam. Ábrelo desde tu lanzador de aplicaciones.')
         launcher = Path(found)
+    from .desktop import desktop_environment
+    env = desktop_environment()
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     with (STATE_DIR / 'steam-launch.log').open('a') as log:
-        subprocess.Popen([str(launcher), urls[section]], stdout=log, stderr=log,
+        subprocess.Popen([str(launcher), urls[section]], stdout=log, stderr=log, env=env,
                          start_new_session=True, close_fds=True)
 
 
