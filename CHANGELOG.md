@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.0a1 — 2026-10-27
+
+- Mute wallpaper playback while another application has audible audio streams;
+  restore it after playback pauses/stops without restarting the renderer.
+- Add an enabled-by-default playback setting and visible automatic-mute status.
+- Add an optional SDDM glass welcome theme, personal circular avatar, clock,
+  session selector and silent image/GIF/video backgrounds. Scenes use previews.
+- Prepare and preview login bundles from Settings or `login-prepare`; install
+  explicitly with administrator privileges, backups and rollback.
+- Cover audio ownership/restoration, export integrity, profile/media preparation
+  and real SDDM theme loading with isolated tests.
+
 ## 0.5.3a1 — 2026-10-24
 
 - Fix packaged executable resource lookup with a private application layout that

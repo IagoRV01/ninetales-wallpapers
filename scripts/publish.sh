@@ -71,7 +71,11 @@ origin=$(git remote get-url origin)
  echo 'Origin points at another repository; review it before publishing.' >&2; exit 1;
 }
 git push --set-upstream origin HEAD:main
-if ! git rev-parse "v$version" >/dev/null 2>&1; then
+if git rev-parse "v$version" >/dev/null 2>&1; then
+ [[ $(git rev-parse "v$version^{commit}") == $(git rev-parse HEAD) ]] || {
+  echo "Tag v$version already points at another commit; refusing to rewrite it." >&2; exit 1;
+ }
+else
  git tag "v$version"
 fi
 # This triggers the release workflow, which uploads the source archives and checksums.
@@ -79,3 +83,4 @@ git push origin "v$version"
 echo "Repository: https://github.com/$repo"
 echo "Release workflow: https://github.com/$repo/actions"
 echo "Release (after the workflow completes): https://github.com/$repo/releases/tag/v$version"
+echo 'The workflow publishes the new archives and adds a replacement link to the previous release.'

@@ -18,10 +18,7 @@ jobs:
           version=$(python3 -c 'from ninetales_wallpapers import __version__; print(__version__)')
           test "$GITHUB_REF_NAME" = "v$version"
           python3 scripts/build-release.py
-      - name: Publish source prerelease
+      - name: Publish source prerelease and update previous release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME" dist/*.tar.gz dist/*.zip dist/SHA256SUMS
-          --verify-tag --prerelease --title "Ninetales Wallpapers $GITHUB_REF_NAME"
-          --notes-file docs/release-notes.md
+        run: python3 scripts/github-release.py "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"

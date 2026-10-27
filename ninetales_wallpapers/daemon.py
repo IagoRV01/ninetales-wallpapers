@@ -12,6 +12,7 @@ import threading
 import time
 
 from . import core, __version__
+from .audio import WallpaperAudio, renderer_environment
 
 
 def layer_outputs(layers, pid):
@@ -73,6 +74,7 @@ class Daemon:
         self.startup_wallpaper = self.caelestia_wallpaper()
         self.state = dict(status='espera', detail='Selecciona un fondo.', active=False)
         self.session = os.environ.get('HYPRLAND_INSTANCE_SIGNATURE', '')
+        self.audio = WallpaperAudio()
 
     def session_alive(self):
         runtime = os.environ.get('XDG_RUNTIME_DIR')
@@ -90,7 +92,8 @@ class Daemon:
         core.atomic_json(core.STATUS, {**self.state, 'heartbeat': time.time() * 1000,
                          'ready_outputs': sorted(self.ready), 'output': core.load_config().get('output', '*'),
                          'title': self.title, 'paused': self.paused, 'pid': os.getpid(),
-                         'session': self.session, 'version': __version__, 'launch_source': self.launch_source})
+                         'session': self.session, 'version': __version__, 'launch_source': self.launch_source,
+                         **self.audio.status()})
 
     def stop_child(self):
         if self.child is not None:
@@ -154,6 +157,7 @@ class Daemon:
             core.qt_environment()
             command = [core.quickshell_path(), '--no-color', '-p', str(core.PROJECT / 'player/shell.qml')]
             env = core.qt_environment()
+        env = renderer_environment(env)
         self.child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                       text=True, bufsize=1, start_new_session=True, env=env,
                                       cwd=core.HOME, close_fds=True)
@@ -197,6 +201,7 @@ class Daemon:
                             self.stop_child()
                             self.state = dict(status='espera', detail='Fondo de Caelestia activo.', active=False)
                     if self.child:
+                        self.audio.poll(config, {self.child.pid})
                         while not self.events.empty():
                             pid, output = self.events.get_nowait()
                             if self.child and pid == self.child.pid and output.startswith('!error:'):

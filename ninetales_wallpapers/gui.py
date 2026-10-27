@@ -297,8 +297,49 @@ class Window(Gtk.ApplicationWindow):
         scaling = combo(playback, t('Cómo encaja'), [('fill', t('Rellenar la pantalla')),
                         ('fit', t('Ajustar sin recortar')), ('stretch', t('Estirar'))], conf.get('scaling', 'fill'))
         sound = check(playback, t('Sonido'), not conf.get('muted', True))
+        auto_mute = check(playback, t('Silenciar el fondo mientras otras aplicaciones reproducen audio'), conf.get('auto_mute', True))
         fullscreen = check(playback, t('Pausar a pantalla completa'), conf.get('pause_fullscreen', True))
         battery = check(playback, t('Ahorrar batería'), conf.get('pause_battery', False))
+
+        login = tab('login', t('Inicio de sesión'))
+        login.pack_start(label(t('Tu fondo y tu foto, también al entrar'), 'section-title'), False, False, 0)
+        login.pack_start(label(t('Elige un fondo en la biblioteca y prepara tu pantalla de bienvenida. Los vídeos y GIF se animan sin sonido; las escenas usan su vista previa.'), wrap=True), False, False, 0)
+        avatar_preview = Gtk.Image()
+        login.pack_start(avatar_preview, False, False, 0)
+        avatar = Gtk.FileChooserButton(title=t('Foto de perfil'), action=Gtk.FileChooserAction.OPEN)
+        images = Gtk.FileFilter()
+        images.add_pixbuf_formats()
+        avatar.add_filter(images)
+        avatar.set_filename(conf.get('login_avatar') or str(core.HOME / '.face'))
+        def update_avatar(*_):
+            try:
+                photo = GdkPixbuf.Pixbuf.new_from_file_at_scale(avatar.get_filename(), 96, 96, True)
+                avatar_preview.set_from_pixbuf(photo)
+            except (GLib.Error, TypeError):
+                avatar_preview.clear()
+        avatar.connect('file-set', update_avatar)
+        update_avatar()
+        self.field(login, t('Foto de perfil'), avatar)
+        prepare = Gtk.Button(label=t('Usar el fondo seleccionado al iniciar sesión'))
+        prepare.get_style_context().add_class('primary')
+        def prepare_login(*_):
+            prepare.set_sensitive(False)
+            selected = self.selected_path or (core.load_config().get('selection') or {}).get('path')
+            photo = avatar.get_filename()
+            def work():
+                try:
+                    from .login import prepare as make_bundle
+                    bundle = make_bundle(selected, photo)
+                    core.save_config(login_avatar=photo or '', login_wallpaper=selected or '')
+                    GLib.idle_add(self.show_login_bundle, bundle)
+                except Exception as error:
+                    GLib.idle_add(self.message, localize(str(error)))
+                finally:
+                    GLib.idle_add(prepare.set_sensitive, True)
+            threading.Thread(target=work, daemon=True).start()
+        prepare.connect('clicked', prepare_login)
+        login.pack_start(prepare, False, False, 0)
+        login.pack_start(label(t('Aplicar el diseño requiere tu contraseña de administrador. La sesión actual continúa abierta.'), 'muted', True), False, False, 0)
 
         steam = tab('steam', 'Steam')
         tracking = check(steam, t('Iniciar mediante Steam'), conf.get('steam_tracking', True))
@@ -386,7 +427,8 @@ class Window(Gtk.ApplicationWindow):
                             autostart=autostart.get_active(), backend=backend.get_active_id() or 'native',
                             fps=int(fps.get_active_id() or '30'), scaling=scaling.get_active_id() or 'fill',
                             muted=not sound.get_active(), pause_fullscreen=fullscreen.get_active(),
-                            pause_battery=battery.get_active(), steam_tracking=tracking.get_active())
+                            pause_battery=battery.get_active(), steam_tracking=tracking.get_active(),
+                            auto_mute=auto_mute.get_active(), login_avatar=avatar.get_filename() or '')
             playback_keys = ('backend', 'fps', 'scaling', 'muted', 'steam_tracking')
             current = core.load_config()
             try:
@@ -414,6 +456,44 @@ class Window(Gtk.ApplicationWindow):
         popover.add(box)
         box.show_all()
         button.set_popover(popover)
+
+    def show_login_bundle(self, bundle):
+        from .desktop import desktop_environment
+        import shlex
+        dialog = Gtk.Dialog(title=t('Tu pantalla de bienvenida'), transient_for=self, modal=True)
+        dialog.get_style_context().add_class('nw-app')
+        dialog.add_button(t('Cerrar'), Gtk.ResponseType.CLOSE)
+        box = dialog.get_content_area()
+        box.set_spacing(16)
+        box.set_border_width(24)
+        box.pack_start(label(t('El diseño está preparado. Puedes probarlo antes de aplicarlo.'), wrap=True), False, False, 0)
+        preview = Gtk.Button(label=t('Vista previa'))
+        def preview_login(*_):
+            try:
+                subprocess.Popen(['sddm-greeter', '--test-mode', '--theme', str(bundle / 'theme')],
+                                 env=desktop_environment(), start_new_session=True)
+            except OSError as error:
+                self.message(str(error))
+        preview.connect('clicked', preview_login)
+        box.pack_start(preview, False, False, 0)
+        apply = Gtk.Button(label=t('Aplicar al inicio de sesión'))
+        apply.get_style_context().add_class('primary')
+        def install_login(*_):
+            try:
+                subprocess.Popen(['kitty', '--hold', '--title', t('Inicio de sesión'),
+                                  'sudo', 'sh', str(bundle / 'install.sh')],
+                                 env=desktop_environment(), start_new_session=True)
+            except OSError as error:
+                self.message(str(error))
+        apply.connect('clicked', install_login)
+        box.pack_start(apply, False, False, 0)
+        command = Gtk.Entry(text='sudo sh ' + shlex.quote(str(bundle / 'install.sh')), editable=False)
+        box.pack_start(command, False, False, 0)
+        box.pack_start(label(t('El fondo y la foto se copiarán al tema de bienvenida. El diseño anterior se guarda para poder restaurarlo.'), 'muted', True), False, False, 0)
+        dialog.show_all()
+        dialog.run()
+        dialog.destroy()
+        return False
 
     @staticmethod
     def field(parent, text, widget):
@@ -624,7 +704,7 @@ class Window(Gtk.ApplicationWindow):
             self.observed_backend = saved_backend
             self.backend.set_active_id(saved_backend)
         paused = conf.get('manual_paused', False)
-        summary = (phase, detail, paused, state.get('launch_source'))
+        summary = (phase, detail, paused, state.get('launch_source'), state.get('auto_muted'), state.get('audio_error'))
         if summary != self.last_status:
             text = {'activo': t('Reproduciendo'), 'pausado': t('En pausa'), 'cargando': t('Cargando'),
                     'espera': t('Fondo estático'), 'detenido': t('Listo para aplicar'), 'error': t('No se pudo aplicar')}.get(phase, phase)
@@ -635,6 +715,10 @@ class Window(Gtk.ApplicationWindow):
                 text += ' · ' + t('Nativo')
             elif source == 'proton':
                 text += ' · Proton'
+            if state.get('audio_error'):
+                text += '\n' + localize(state['audio_error'])
+            elif state.get('auto_muted') and not conf.get('muted', True):
+                text += '\n' + t('Sonido del fondo silenciado: otra aplicación está reproduciendo audio.')
             self.status_label.set_text(text + ('\n' + detail if detail and phase not in ('espera', 'detenido') else ''))
             self.pause.set_label(t('Reanudar') if paused else t('Pausar'))
             self.pause.set_sensitive(bool(core.load_config().get('selection')))

@@ -28,10 +28,22 @@ The optional GUI test uses a private Xvfb display and a temporary application st
 dbus-run-session -- /usr/bin/python3 scripts/test-gui.py
 ```
 
-It requires PyGObject / GTK 3 and Xvfb, never starts Steam, and checks all five
+It requires PyGObject / GTK 3 and Xvfb, never starts Steam, and checks all six
 settings pages and language switching. It is a separate CI job; socket-restricted
 sandboxes cannot run it. Translation catalogs must have identical message IDs and
 preserve named placeholders in all languages.
+
+To check a prepared SDDM bundle without touching the login configuration:
+
+```bash
+python3 scripts/test-login.py /path/to/prepared/bundle --screenshot /tmp/login-preview.png
+```
+
+It uses the installed Qt 5 `sddm-greeter` in offscreen test mode, first with the
+production models and then a synthetic authentication backend. It exercises
+session selection, password clearing and retry and saves a rendered screenshot.
+This does not verify a real PAM login or GPU-rendered blur. Test bundles and
+screenshots can contain personal artwork: keep them outside the source tree.
 
 Changes to subprocess management must preserve argv-based execution, private-prefix
 cleanup, failover to static wallpaper and the absence of automatic restart loops.

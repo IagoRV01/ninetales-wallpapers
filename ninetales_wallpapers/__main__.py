@@ -16,6 +16,9 @@ def main():
     sub.add_parser('stop', help='Volver al fondo de Caelestia')
     sub.add_parser('pause', help='Pausar o reanudar manualmente')
     sub.add_parser('doctor', help='Comprobar motor, recursos, Qt y bibliotecas')
+    login = sub.add_parser('login-prepare', help='Preparar el fondo y la foto para SDDM')
+    login.add_argument('--wallpaper')
+    login.add_argument('--avatar')
     wrapper = sub.add_parser('steam-wrapper', help='Steam launch option entry point')
     wrapper.add_argument('steam_command', nargs=argparse.REMAINDER)
     apply = sub.add_parser('apply', help='Aplicar un archivo o carpeta de Workshop')
@@ -34,6 +37,12 @@ def main():
             from .steam_integration import wrapper as run_wrapper
             command = args.steam_command
             return run_wrapper(command[1:] if command and command[0] == '--' else command) or 0
+        elif args.command == 'login-prepare':
+            from .login import prepare
+            import shlex
+            bundle = prepare(args.wallpaper, args.avatar)
+            print('Paquete preparado:', bundle)
+            print('Aplicar: sudo sh ' + shlex.quote(str(bundle / 'install.sh')))
         elif args.command == 'daemon':
             from .daemon import Daemon
             Daemon().run()

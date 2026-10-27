@@ -90,6 +90,7 @@ def prepare_application(found, config, directory):
 
 
 def environment(found, display, authority, prefix):
+    from .audio import renderer_environment
     env = dict(os.environ)
     for key in ('QT_PLUGIN_PATH', 'QML_IMPORT_PATH', 'QML2_IMPORT_PATH', 'QT_QPA_PLATFORMTHEME',
                 'WAYLAND_DISPLAY', 'WINEPREFIX', 'WINESERVER', 'WINELOADER', 'LD_PRELOAD'):
@@ -99,7 +100,7 @@ def environment(found, display, authority, prefix):
                SteamAppId='431960', SteamGameId='431960', STEAM_COMPAT_APP_ID='431960',
                PROTON_USE_WINED3D='1', LIBGL_ALWAYS_SOFTWARE='1', PROTON_NO_ESYNC='1', PROTON_NO_FSYNC='1',
                WINEDLLOVERRIDES='winewayland.drv=d', WINEDEBUG='-all')
-    return env
+    return renderer_environment(env)
 
 
 def engine_cwd(found):

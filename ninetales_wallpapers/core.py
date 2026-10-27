@@ -21,7 +21,8 @@ MEDIA = {'.mp4', '.webm', '.mkv', '.mov', '.m4v', '.avi'}
 IMAGES = {'.png', '.jpg', '.jpeg', '.webp', '.bmp'}
 DEFAULTS = dict(selection=None, output='*', fps=30, muted=True, scaling='fill',
                 manual_paused=False, pause_fullscreen=True, pause_battery=False,
-                autostart=True, library_paths=[], files=[], generation=0, backend='proton', language='auto', steam_tracking=True, steam_on_open=True)
+                autostart=True, library_paths=[], files=[], generation=0, backend='proton', language='auto', steam_tracking=True, steam_on_open=True,
+                auto_mute=True, login_avatar='', login_wallpaper='')
 
 
 def atomic_json(path: Path, value):

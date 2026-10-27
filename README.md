@@ -6,7 +6,7 @@ A GTK wallpaper library and playback supervisor for **Hyprland with Caelestia**.
 Browse downloaded Wallpaper Engine projects, local videos, GIFs and images, choose
 an output, and restore the last wallpaper when your desktop starts.
 
-**Version 0.5.3a1 is a prerelease.** Native playback remains available.
+**Version 0.6.0a1 is a prerelease.** Native playback remains available.
 The official Windows renderer through Proton is experimental: its
 Wayland bridge has now been validated with the Snowpoint City - Eevee scene on
 the Mint / Hyprland development system. Other projects and configurations may differ. This project is independent of
@@ -25,6 +25,10 @@ Wallpaper Engine, Valve, Hyprland and Caelestia.
 - Settings for language, playback, Steam, library folders and diagnostics.
 - Spanish, English, French and Portuguese interfaces; saved language choice or system detection.
 - Output selection, fill/fit/stretch, mute, pause and startup restoration.
+- Automatic wallpaper-only muting while another application plays audio; sound
+  returns when the other playback stops, without restarting the wallpaper.
+- An optional SDDM welcome theme with a personal profile picture, glass panel,
+  clock, session selector and silent image/GIF/video background.
 - Optional pauses for fullscreen applications, battery use or powered-off displays.
 - Caelestia keeps its bars and widgets; its static wallpaper remains until the new
   player reports readiness and returns if the supervisor stops responding.
@@ -69,8 +73,9 @@ sudo apt-get --no-remove install python3 python3-gi gir1.2-gtk-3.0
 ```
 
 Install compatible Hyprland, Caelestia, Quickshell and Qt separately. This project
-does not install a compositor, modify your display manager, or replace your login
-session. For private Qt installations, set `NW_QT_PREFIX=/path/to/qt`; for a custom
+does not install a compositor or replace your login session. Its optional SDDM
+theme has a separate, explicit administrator installation described below.
+For private Qt installations, set `NW_QT_PREFIX=/path/to/qt`; for a custom
 Quickshell executable, set `NW_QUICKSHELL=/path/to/qs`. The existing
 `~/.local/state/caelestia-mint/qt-prefix` setup is also recognized. Without an
 explicit Qt prefix, Quickshell uses its system Qt search paths.
@@ -125,10 +130,53 @@ static wallpaper in Caelestia returns wallpaper control to Caelestia.
 
 ## Settings and Steam playtime
 
-Open the gear button for **General**, **Playback**, **Steam**, **Library** and
+Open the gear button for **General**, **Playback**, **Login screen**, **Steam**, **Library** and
 **Diagnostics**. Playback settings are validated and applied when saved; language
 changes rebuild the window immediately. Removing a library folder does not delete
 its files. Diagnostics show renderer discovery and offer access to local logs.
+
+**Playback → Mute the wallpaper while other apps play audio** is on by default.
+The supervisor inspects active PulseAudio/PipeWire playback streams through
+`pactl` (Ubuntu/Mint package `pulseaudio-utils`) every playback tick. Paused,
+muted, zero-volume and notification streams do not trigger muting. Only the
+wallpaper's streams are changed; the other application's volume is preserved.
+Renderer environment tags and process ancestry distinguish the wallpaper from
+Steam, browsers and its own audio. A one-second release delay avoids flicker
+between tracks. Manual mute remains authoritative. The app reports unavailable
+audio monitoring rather than stopping playback; it never records audio samples.
+
+## Personal login screen (SDDM)
+
+In **Settings → Login screen**, choose a profile photo and use the selected
+library wallpaper. The app prepares an independent theme bundle, offers a real
+SDDM test-mode preview, and opens an administrator terminal when you choose
+**Apply to login screen**. The background does not change automatically whenever
+you switch desktop wallpapers: use this action again to apply a new choice.
+
+Images, GIFs and videos can be used; animations are always silent. A Wallpaper
+Engine scene or web project uses its local preview image. The Windows/community
+renderer, Steam and third-party wallpaper scripts never run before login. Videos
+include a still poster fallback. A profile picture is cropped into a circular
+PNG, and media is copied into the system theme so SDDM needs no access to the
+user's home directory. Custom names and pictures remain outside this repository.
+
+The installer requires the existing display manager to be SDDM. It installs Qt 5
+QML dependencies from the distribution if required, writes only the new theme
+under `/usr/share/sddm/themes/ninetales-glass` and its configuration snippet, and
+prints a root-owned backup/rollback path under `/var/backups/ninetales-login-*`.
+It preserves the existing authentication and session configuration and does not
+restart SDDM or end the current session. The new design appears at the next login.
+Run the printed `sudo sh …/rollback.sh` command to restore the previous theme.
+
+You can also prepare a bundle from a terminal:
+
+```bash
+ninetales-wallpapers login-prepare --wallpaper /path/to/media-or-project --avatar /path/to/photo.png
+```
+
+Run the installation command it prints only after reviewing the prepared theme.
+Bundles live in `~/.local/share/ninetales-wallpapers/login-bundles/`. The main app
+installer does not activate this optional system integration.
 
 With **Launch through Steam** enabled for the official backend, the supervisor
 asks Steam to launch application **431960**. A one-time launch option, shown with
@@ -219,8 +267,8 @@ sprites are included. See [CONTRIBUTING.md](CONTRIBUTING.md),
 [CHANGELOG.md](CHANGELOG.md), and [release notes](docs/release-notes.md).
 
 A GitHub Actions workflow runs the unit tests. A separate tag-triggered workflow
-builds and publishes prerelease assets for `v0.5.3a1`. The local helper
-`scripts/publish.sh` can create a public repository and initial prerelease using
+builds and publishes prerelease assets for version tags, including `v0.6.0a1`. The local helper
+`scripts/publish.sh` can publish the current version or create a public repository using
 an authenticated GitHub CLI; it never asks for a token on the command line.
 
 On Mint / Ubuntu, `bash scripts/github-setup.sh --publish` can download the distro's

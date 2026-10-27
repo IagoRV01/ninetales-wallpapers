@@ -1,60 +1,59 @@
-# Ninetales Wallpapers 0.5.3a1
+# Ninetales Wallpapers 0.6.0a1
 
-A prerelease of the GTK wallpaper browser and supervisor for Hyprland with
-Caelestia. Includes native media playback, a community scene-renderer adapter,
-Workshop monitoring and an experimental official Windows renderer through Proton.
+Wallpaper audio now yields to music and videos in other applications. This
+prerelease also adds a personal SDDM welcome screen with a glass panel, circular
+profile picture, clock and session selector.
 
 ## New in this version
 
-- Correct the official renderer's executable / resource layout without modifying
-  Steam-owned files. This resolves the missing-shader failure observed during testing.
-- Fix control-command startup, private display teardown and native capture environment.
-- Check actual wallpaper output before replacing the static wallpaper; retain
-  diagnostic images in user state only.
-- Confirm live playback of Snowpoint City - Eevee through the official renderer,
-  with Steam tracking the session and cached recorded minutes increasing.
+- Automatically mute only the wallpaper while other applications have active
+  audio playback. Restore its sound after playback pauses or stops, without
+  restarting the wallpaper. Manual mute is preserved.
+- Enable or disable automatic muting in Settings → Playback. Audio-server and
+  mute-control errors are shown in the playback status.
+- Prepare a login wallpaper and profile picture in Settings → Login screen.
+  Preview the theme with SDDM's test mode before applying it.
+- Use silent videos/GIFs or static images on the welcome screen. Wallpaper Engine
+  scene and web projects use their preview image; their renderers do not run
+  before login.
+- Install the optional SDDM theme explicitly with administrator privileges, with
+  an integrity manifest, backup and rollback command. The installer does not
+  restart SDDM or end the current desktop session.
+- Include the new settings and messages in the Spanish, English, French and
+  Portuguese app interfaces. The supplied welcome theme uses Spanish labels.
 
-- Fix Steam Play without a companion request: execute the original Steam launch
-  command instead of rejecting it. A real child-process regression test checks
-  argument handling and exit-status propagation.
-- Distinguish native playback from Steam-owned official playback in the interface.
-- Save official-renderer startup output and early wrapper errors for diagnosis.
+## Installation and updating
 
-- Verified selection of the current desktop Xwayland display for Steam launches.
-- A backed-up user-local Steam launcher repair, without changing X server permissions.
-- A Caelestia QML extension that restores icon search paths for private Qt builds;
-  eight representative installed icons successfully resolve and decode.
+Extract a source archive to a permanent folder, install the runtime dependencies
+listed in README.md, then run `python3 install.py`. Keep the source folder in
+place: the launcher refers to it. Existing installations can update their source
+checkout and reopen the app to load the new supervisor.
 
-- Steam-managed official-renderer sessions through a one-time launch option.
-- Cached Steam playtime display; the application never modifies recorded playtime.
-- Startup playback, with an installed default project on first official use.
-- Settings pages for General, Playback, Steam, Library and Diagnostics.
-- Spanish, English, French and Portuguese interfaces, with immediate language changes.
-- A user-local GitHub CLI installation and browser-authentication helper.
-
-## Installation
-
-Extract a source archive to a permanent folder, install the documented runtime
-dependencies, then run `python3 install.py`. Complete the one-time launch option
-shown in Settings → Steam before using Steam-managed playback. See `README.md`,
-`docs/proton.md` and `docs/steam.md`. Archives do not bundle Python, Qt, Quickshell,
-Proton, Wallpaper Engine or wallpaper content.
+Automatic audio muting requires `pactl`, provided by `pulseaudio-utils` on
+Ubuntu/Mint, and a working PulseAudio or PipeWire-Pulse session. The optional
+welcome screen requires the existing display manager to be SDDM and uses the
+system's Qt 5 QML modules. Its separate installer checks dependencies; the main
+app installer does not activate or replace the login theme automatically.
 
 ## Verification and limits
 
-The 72 Python tests pass, including Steam request lifecycle, prefix isolation,
-translation completeness and placeholder checks. Real FFmpeg encoding to two FIFOs
-and decoding through two Qt Multimedia players passed. Six C++ assertions cover
-the community renderer geometry helper.
+- 91 Python tests pass locally, including audio ownership, mute restoration,
+  manual-mute precedence, recycled stream IDs, login export, installer backups
+  and idempotent release publishing with preserved version history.
+- The installed SDDM loads the production theme in offscreen test mode. A
+  synthetic backend verifies session selection, password clearing, failure and
+  retry, with a rendered preview. This is not a real PAM login or GPU blur test.
+- Real audio handoff in the desktop session and the video greeter decoder have
+  not been verified in the restricted development environment. Audio detection
+  uses playback-stream state rather than recording or measuring audio samples.
+- The optional GTK/Xvfb settings and language smoke test is supplied in CI; the
+  local sandbox does not allow its D-Bus/X11 sockets.
 
-A private-display GUI test is supplied and configured in CI; the local sandbox
-prevents creating its D-Bus / X11 sockets, so it has not run successfully here.
-Official renderer playback through Steam was verified with one scene on the
-development system. Steam tracked that session and cached playtime increased;
-compatibility and account-side synchronization can vary. The capture bridge is
-software-heavy, capped at 30 FPS, mirrors selected displays and does not forward
-pointer interaction. Native playback remains an alternative. No general
-cross-distribution or full Windows feature compatibility is claimed.
+The official Wallpaper Engine renderer through Proton remains experimental and
+was previously validated with one installed scene on the development system.
+Its capture bridge is software-heavy, capped at 30 FPS, mirrors selected displays
+and does not forward pointer interaction. Native playback remains available.
 
-SHA-256 checksums are supplied in `SHA256SUMS`. No proprietary executables,
-Workshop content, user state, credentials or character art are distributed.
+Archives contain source code, documentation and synthetic tests, with SHA-256
+checksums in SHA256SUMS. They do not include personal avatars, wallpaper content,
+Steam state, credentials, proprietary renderers, Qt, Python or Quickshell.

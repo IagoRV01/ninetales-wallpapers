@@ -65,7 +65,7 @@ def main():
                             assert dialog.get_title() == i18n.t('Ajustes')
                             widgets = list(descendants(dialog))
                             notebook = next(w for w in widgets if isinstance(w, Gtk.Notebook))
-                            assert notebook.get_n_pages() == 5, 'Settings pages missing'
+                            assert notebook.get_n_pages() == 6, 'Settings pages missing'
                             combos = [w for w in widgets if isinstance(w, Gtk.ComboBoxText)]
                             current = core.load_config()['language']
                             chooser = next(w for w in combos if w.get_active_id() == current)
@@ -85,7 +85,7 @@ def main():
                     assert i18n.t('Tu biblioteca') in labels, language
                 app.window.destroy()
                 app.quit()
-                print('PASS: five settings pages render and all four languages rebuild the UI.')
+                print('PASS: six settings pages render and all four languages rebuild the UI.')
         finally:
             os.close(read)
             server.terminate()

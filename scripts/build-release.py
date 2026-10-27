@@ -23,7 +23,7 @@ def source_files():
     for directory in DIRECTORIES:
         files.extend(p for p in (ROOT / directory).rglob('*')
                      if p.is_file() and '__pycache__' not in p.parts and
-                     (p.suffix in ('.py', '.qml', '.md', '.sh', '.yml', '.yaml', '.cpp') or
+                     (p.suffix in ('.py', '.qml', '.md', '.sh', '.yml', '.yaml', '.cpp', '.conf', '.desktop') or
                       p.name == 'qmldir' or
                       (p.parent == ROOT / 'ninetales_wallpapers/locales' and p.name in ('es.json', 'en.json', 'fr.json', 'pt.json'))))
     for path in files:

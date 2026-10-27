@@ -16,6 +16,26 @@ playback; pause changes do not. An unsuccessful player is not restarted in a loo
 Upgrades gracefully replace an older supervisor when the application next applies
 a wallpaper in the same session.
 
+`audio.py` monitors sink-input state with `pactl --format=json`. Renderer
+PulseAudio/PipeWire properties and verified process ancestry identify owned
+streams. Only those streams are muted when other audible playback is present;
+the supervisor restores only streams it actually changed, matching their client,
+PID and object serial so reused sink-input indices are not unmuted accidentally.
+It preserves manual muting, reports audio-server/control errors, and never
+restarts the wallpaper for automatic audio changes.
+
+`login.py` prepares private, self-contained SDDM bundles from validated library
+metadata. Scenes/web projects export their preview; images/GIFs/videos are
+copied, videos receive a poster, and profile pictures are decoded and cropped to
+transparent circular PNGs. No user paths or artwork are added to source releases.
+`integrations/sddm/theme` contains the original Qt 5 QML theme. Its production
+adapter delegates authentication and session choice to SDDM; it does not store
+credentials. The optional administrator installer verifies the bundle manifest,
+backs up the previous theme and snippet, installs readable assets, and provides
+rollback without restarting the display manager. `scripts/test-login.py` tests
+the installed SDDM's real theme context and then exercises login failure/session
+selection with a synthetic backend in offscreen mode.
+
 Native media uses `player/shell.qml` and `MediaWallpaper.qml`. Scene and web projects
 use an external linux-wallpaperengine installation. `proton.py` discovers the
 Windows renderer / Proton and constructs commands; `proton_bridge.py` implements
@@ -50,8 +70,10 @@ before atomically swapping it into place. Restart playback to load the new libra
 ## Boundaries
 
 The project does not authenticate to Steam, bypass ownership, scrape Workshop or
-redistribute renderer assets. It does not alter the display manager, login session
-or OS package sources. Only the dependency/build helper invokes package management.
+redistribute renderer assets. It does not replace the display manager or login
+session, or change OS package sources. The optional SDDM theme is activated only
+by its separate administrator installer. That installer and the dependency/build
+helper can install distribution dependencies.
 Source release archives use an explicit allowlist and contain no user state.
 
 ## Official startup validation
